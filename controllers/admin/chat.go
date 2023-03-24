@@ -185,6 +185,43 @@ func GetDisabledUsers(w http.ResponseWriter, r *http.Request) {
 	controllers.WriteResponse(w, users)
 }
 
+// UpdateUserRole will set a role status for a user ID.
+func UpdateUserRole(w http.ResponseWriter, r *http.Request) {
+	type request struct {
+		UserID string `json:"userId"`
+		IsRole bool   `json:"isRole"`
+	}
+
+	if r.Method != controllers.POST {
+		controllers.WriteSimpleResponse(w, false, r.Method+" not supported")
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var req request
+
+	if err := decoder.Decode(&req); err != nil {
+		controllers.WriteSimpleResponse(w, false, "")
+		return
+	}
+
+	role := r.URL.Query().Get("role")
+
+	// Update the user's role.
+	if err := user.SetRole(req.UserID, role); err != nil {
+		controllers.WriteSimpleResponse(w, false, err.Error())
+		return
+	}
+
+	// Update the clients for this user to know about the streamer access change.
+	if err := chat.SendConnectedClientInfoToUser(req.UserID); err != nil {
+		log.Debugln(err)
+	}
+
+	controllers.WriteSimpleResponse(w, true, fmt.Sprintf("%s is %s: %t", req.UserID, role, req.IsRole))
+
+}
+
 // UpdateUserModerator will set the moderator status for a user ID.
 func UpdateUserModerator(w http.ResponseWriter, r *http.Request) {
 	type request struct {
@@ -219,7 +256,18 @@ func UpdateUserModerator(w http.ResponseWriter, r *http.Request) {
 	controllers.WriteSimpleResponse(w, true, fmt.Sprintf("%s is moderator: %t", req.UserID, req.IsModerator))
 }
 
+// GetRoles will return a list of users given a role.
+func GetRoles(roleKey string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		users := user.GetModeratorUsers()
+		controllers.WriteResponse(w, users)
+	}
+}
+
 // GetModerators will return a list of moderator users.
+// TODO remove this function, not needed if GetRoles is used.
 func GetModerators(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

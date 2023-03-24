@@ -147,6 +147,9 @@ func Start() error {
 	// Set moderator status for a user
 	http.HandleFunc("/api/admin/chat/users/setmoderator", middleware.RequireAdminAuth(admin.UpdateUserModerator))
 
+	// Set a user chat role via query parameter
+	http.HandleFunc("/api/admin/chat/users/setrole", middleware.RequireAdminAuth(admin.UpdateUserRole))
+
 	// Get a list of moderator users
 	http.HandleFunc("/api/admin/chat/users/moderators", middleware.RequireAdminAuth(admin.GetModerators))
 

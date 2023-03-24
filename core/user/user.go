@@ -21,8 +21,14 @@ var _datastore *data.Datastore
 
 const (
 	moderatorScopeKey              = "MODERATOR"
+	streamerScopeKey               = "STREAMER"
 	minSuggestedUsernamePoolLength = 10
 )
+
+var validRoles = map[string]bool{
+	moderatorScopeKey: true,
+	streamerScopeKey:  true,
+}
 
 // User represents a single chat user.
 type User struct {
@@ -249,6 +255,25 @@ func SetModerator(userID string, isModerator bool) error {
 	}
 
 	return removeScopeFromUser(userID, moderatorScopeKey)
+}
+
+// SetRole will add or remove a role for a single user by ID. The
+// current roles available are moderator, streamer, or both.
+func SetRole(userID string, scopeKey string) error {
+	if err := checkRoleValidity(scopeKey); err != nil {
+		return removeScopeFromUser(userID, scopeKey)
+	}
+
+	return addScopeToUser(userID, scopeKey)
+}
+
+// checkRoleValidity checks if a role is valid to add.
+func checkRoleValidity(scopeKey string) error {
+	if !validRoles[scopeKey] {
+		return errors.New("invalid role")
+	}
+
+	return nil
 }
 
 func addScopeToUser(userID string, scope string) error {
